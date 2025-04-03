@@ -1,42 +1,67 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextRequest, NextResponse } from "next/server";
+// Simple middleware approach compatible with Edge Functions
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-const isPublicRoute = createRouteMatcher([
+// List of public routes that don't require authentication
+const publicRoutes = [
+  '/',
   '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/'
-]);
+  '/sign-up(.*)'
+];
 
-const isOnboardingRoute = createRouteMatcher([
+// Routes for authenticated users only related to onboarding
+const authRoutes = [
   '/onboarding(.*)'
-]);
+];
 
-export default clerkMiddleware(async (auth, req) => {
-  // Allow public routes
-  if (isPublicRoute(req)) {
-    return NextResponse.next();
-  }
+// Check if the current route is public
+const isPublicRoute = (path: string) => {
+  return publicRoutes.some(route => {
+    const regex = new RegExp(`^${route.replace(/\(.*\)/, '.*')}$`);
+    return regex.test(path);
+  });
+};
+
+// Check if the current route is an auth route
+const isAuthRoute = (path: string) => {
+  return authRoutes.some(route => {
+    const regex = new RegExp(`^${route.replace(/\(.*\)/, '.*')}$`);
+    return regex.test(path);
+  });
+};
+
+export function middleware(req: NextRequest) {
+  const { nextUrl } = req;
+  const path = nextUrl.pathname;
   
-  try {
-    // Protect all other routes
-    const { userId } = await auth.protect();
-    
-    // Allow onboarding routes for authenticated users
-    if (isOnboardingRoute(req)) {
-      return NextResponse.next();
-    }
-    
-    // Set path header for active link detection
-    const headers = new Headers();
-    headers.set("x-pathname", req.nextUrl.pathname);
-    
-    return NextResponse.next({ headers });
-  } catch (error) {
-    // If auth protection fails, redirect to sign-in
+  // Add path header for active link detection
+  const headers = new Headers(req.headers);
+  headers.set("x-pathname", path);
+  
+  // If the route is public, allow access
+  if (isPublicRoute(path)) {
+    return NextResponse.next({
+      headers
+    });
+  }
+
+  // Check for auth cookie - simplified approach for Edge compatibility
+  // Just checking if the cookie exists, not validating it
+  const hasAuthCookie = req.cookies.has('__clerk_db_jwt');
+  
+  // If the user is not authenticated and trying to access a protected route,
+  // redirect to sign-in
+  if (!hasAuthCookie) {
     return NextResponse.redirect(new URL('/sign-in', req.url));
   }
-});
+  
+  // Allow the request to continue
+  return NextResponse.next({
+    headers
+  });
+}
 
+// Configure which routes the middleware runs on
 export const config = {
   matcher: [
     // Skip Next.js internals and all static files

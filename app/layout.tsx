@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider, GoogleOneTap } from "@clerk/nextjs";
 import "./globals.css";
@@ -14,6 +14,11 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   title: "FinePilot - Your Personal Finance Manager",
@@ -43,7 +48,6 @@ export const metadata: Metadata = {
     description: "Take control of your finances with smart budgeting, expense tracking, and personalized insights",
     creator: "@finepilot",
   },
-  viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
 };
 
