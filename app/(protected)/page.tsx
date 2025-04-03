@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function ProtectedRootPage() {
+export default function page() {
   redirect("/banking/dashboard");
 } 
