@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  firstName    String
+  lastName     String
+  profileImage String
+  role         UserRole  @default(CUSTOMER)
+  createdAt    DateTime  @default(now())
+  
+  // Banking system relationships
+  customer     Customer?
+}
+
+enum UserRole {
+  CUSTOMER
+  EMPLOYEE
+  ADMIN
+}
+
+model Customer {
+  id              String           @id @default(uuid())
+  userId          String           @unique
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone           String?
+  address         String?
+  city            String?
+  state           String?
+  zipCode         String?
+  country         String?
+  employmentStatus EmploymentStatus? @default(EMPLOYED)
+  annualIncome    Float?
+  additionalInfo  String?
+  accounts        Account[]
+  loans           Loan[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+enum EmploymentStatus {
+  EMPLOYED
+  SELF_EMPLOYED
+  UNEMPLOYED
+  STUDENT
+  RETIRED
+}
+
+model Account {
+  id           String        @id @default(uuid())
+  accountNumber String        @unique
+  customerId   String
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type         AccountType
+  balance      Float         @default(0.0)
+  status       AccountStatus @default(ACTIVE)
+  
+  // Fields for Fixed Deposits
+  tenure       Int?          // Tenure in months (for Fixed Deposits)
+  maturityDate DateTime?     // Maturity date (for Fixed Deposits)
+  interestRate Float?        // Interest rate (for Fixed Deposits)
+  
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+enum AccountType {
+  SAVINGS
+  CURRENT
+  FIXED_DEPOSIT
+}
+
+enum AccountStatus {
+  ACTIVE
+  CLOSED
+  SUSPENDED
+}
+
+model Loan {
+  id          String     @id @default(uuid())
+  loanNumber  String     @unique
+  customerId  String
+  customer    Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  amount      Float
+  interest    Float
+  term        Int        // In months
+  status      LoanStatus @default(ACTIVE)
+  payments    LoanPayment[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+enum LoanStatus {
+  ACTIVE
+  PAID
+  OVERDUE
+  REJECTED
+  PENDING
+}
+
+model LoanPayment {
+  id        String   @id @default(uuid())
+  loanId    String
+  loan      Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  amount    Float
+  status    PaymentStatus @default(PENDING)
+  dueDate   DateTime
+  paidDate  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type        TransactionType
+  amount      Float
+  description String?
+  reference   String?
+  createdAt   DateTime @default(now())
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  TRANSFER
+  PAYMENT
+  FEE
+}
+
+// Add the Task model
+model Task {
+  id        String   @id @default(cuid())
+  text      String
+  completed Boolean  @default(false)
+  category  String?  // FINANCIAL, ACCOUNT_SETUP, etc.
+  userId    String   // Foreign key to the Clerk user
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
