@@ -1,5 +1,13 @@
-import { redirect } from "next/navigation";
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export default function page() {
-  redirect("/banking/dashboard");
-} 
+export default function Page() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.push("/banking/dashboard");
+  }, []);
+
+  return null; // or a loading spinner
+}
